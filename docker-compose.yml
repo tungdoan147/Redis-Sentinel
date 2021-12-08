@@ -1,0 +1,52 @@
+version: "3"
+
+services:
+  redis:
+    container_name: redis
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 20000
+        hard: 40000
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /data/redis:/data
+    network_mode: host
+    privileged: true
+    restart: unless-stopped
+
+  redis-slave:
+    container_name: redis-slave
+    image: redis:latest
+    command: redis-server --slaveof ${REDIS_MASTER} 6379
+    ports:
+      - "6379:6379"
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 20000
+        hard: 40000
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /data/redis:/data
+    network_mode: host
+    privileged: true
+    restart: unless-stopped
+  sentinel:
+    container_name: sentinel
+    build: sentinel
+    ports:
+      - "26379:26379"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - SENTINEL_QUORUM=3
+      - SENTINEL_DOWN_AFTER=5000
+      - SENTINEL_FAILOVER=5000
+      - REDIS_MASTER=${REDIS_MASTER}
+    network_mode: host
+    privileged: true
+    restart: unless-stopped
